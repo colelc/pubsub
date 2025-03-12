@@ -1,0 +1,6 @@
+python-dotenv==1.0.1
+greenstalk==2.0.2
+#
+## redis-py-cluster was released in May, 2021 and has since reached end-of-life.
+## It is recommended to use the latest version of redis-py (5.0 as of January 2025), which includes native cluster support.
+redis==5.0.0
