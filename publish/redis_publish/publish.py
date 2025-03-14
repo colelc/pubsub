@@ -10,7 +10,8 @@ class Publish(object):
         log.info("This is code to publish a message to a redis channel")
         log.info("")
 
-        RedisPublish().redis_publish()
+        #RedisPublish().redis_publish()
+        RedisPublish().redis_publish_to_stream()
 
         log.info("DONE")
 
