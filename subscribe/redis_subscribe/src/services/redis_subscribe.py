@@ -101,15 +101,18 @@ class RedisSubscribe(object):
                             dn = dct[b'dn'].decode("utf-8")
                             self.logger.info(timestamp_marker + " -> " + str(dn))
 
-                            self.process_message(timestamp_marker, dn)
+                            return_code, job_file_path = self.process_message(timestamp_marker, dn)
 
-                            # acknowledge ensures the message will not get delivered again
-                            acknowledged_count = self.get_redis_client().xack(stream_name, consumer_group, timestamp_marker)
-                            if acknowledged_count == 1:
-                                self.logger.info(str(acknowledged_count) + " acknowledgement issued for " + timestamp_marker + " " + dn)
+                            if return_code == 0:
+                                # acknowledge ensures the message will not get delivered again
+                                acknowledged_count = self.get_redis_client().xack(stream_name, consumer_group, timestamp_marker)
+                                if acknowledged_count == 1:
+                                    self.logger.info(str(acknowledged_count) + " acknowledgement issued for " + timestamp_marker + " " + dn)
+                                else:
+                                    self.logger.error("Acknowledged message count should be 1, but is " + str(acknowledged_count) + " for:")
+                                    self.logger.error("timestamp marker: " + str(timestamp_marker) + " dn=" + str(dn))
                             else:
-                                self.logger.error("Acknowledged message count should be 1, but is " + str(acknowledged_count) + " for:")
-                                self.logger.error("timestamp marker: " + str(timestamp_marker) + " dn=" + str(dn))
+                                self.logger.error("return_code from publish_list.py is " + str(return_code) + ": see " + job_file_path)
                             
             except redis.exceptions.ConnectionError as econn:
                 self.logger.error(str(econn))
@@ -123,7 +126,7 @@ class RedisSubscribe(object):
                 self.logger.error(str(e))
 
 
-    def process_message(self, timestamp_marker, dn):
+    def process_message(self, timestamp_marker, dn) -> int:
         time.sleep(5)
         # here, we want to create the marker file, /tmp/job-[timestamp_marker].out
         # Stdout and Stderr stuff is written to marker file.
@@ -137,24 +140,35 @@ class RedisSubscribe(object):
         
         self.logger.info("Preparing job marker file: " + job_file_path)
 
-        bash_script_dir = os.getenv("PYTHONPATH")
-        bash_script_name = Config.get_property("job.script.name")
+        #bash_script_dir = os.getenv("PYTHONPATH")
+        bash_script_dir = Config.get_property("bash.script.directory")
+        bash_script_name = Config.get_property("bash.script.name")
         bash_script_path = os.path.join(bash_script_dir, bash_script_name)
+
+        python_directory = Config.get_property("python.directory")
+        python_prog_name = Config.get_property("python.prog.name")
+        python_prog_path = os.path.join(python_directory, python_prog_name)
 
         with open(job_file_path, "w") as job_file:
             self.logger.info("Calling " + str(bash_script_name) + " with dn=" + str(dn))
-            result = subprocess.run(["/bin/sh", "-e", "-x", bash_script_path, str(dn), self.list_work_directory, self.list_staging_directory], capture_output=True, text=True, timeout=60)
+            result = subprocess.run(
+                ["/bin/sh", "-e", "-x", bash_script_path, str(dn), self.list_work_directory, self.list_staging_directory, python_prog_path], capture_output=True, 
+                text=True, 
+                timeout=60
+            )
             self.logger.info(str(result.stdout))
             job_file.write(result.stdout)
             job_file.write(result.stderr)
 
         if result.returncode == 0:
-            #self.logger.info("SUCCESS: do not forget to remove the marker file")
-            self.logger.info("SUCCESS: removing job marker file: " + job_file_path)
             try:
+                #self.logger.info("SUCCESS: do not forget to remove the marker file")
                 os.remove(job_file_path)
+                self.logger.info("SUCCESS: removing job marker file: " + job_file_path)
             except Exception as e:
                 self.logger.error(str(e))
         else: # error
             self.logger.error("Return code " + str(result.returncode))
+
+        return (result.returncode, job_file_path)
 

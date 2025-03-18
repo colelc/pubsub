@@ -21,12 +21,15 @@ echo "list name is" $list_name
 
 #echo "Number of arguments is $#"
 #echo "All arguments: $@"
-echo "dn:" $1
+#echo "dn:" $1
+dn=$1
+echo "dn:" $dn
 work_dir=$2
 echo "work_dir:" $work_dir
 staging_dir=$3
 echo "staging dir:" $staging_dir
-
+python_prog=$4
+echo "python program:" $python_prog
 
 #echo "ARGS.positional[0] is" $ARGS.positional[0]
 # urlencoded_dn=$(jq --null-input --raw-output --args '$ARGS.positional[0] | @uri' "$1")
@@ -52,11 +55,14 @@ echo "staging dir:" $staging_dir
 #echo "list_name:" $list_name
 
 
-# rebuild_list() {
-#     out="/tmp/job-${list_name}-rebuild.out"
-#     python3 "$HOME/publish_list.py" --debug --output "$2" "$1" > "$out"
-#     [ -f /tmp/debug ] || rm "$out"
-# }
+rebuild_list() {
+    out="/tmp/job-${list_name}-rebuild.out"
+    #python3 "$HOME/publish_list.py" --debug --output "$2" "$1" > "$out"
+    # python3 "$python_prog" --debug --output "$work_dir" "$dn" > "$out"
+    # python3 "$python_prog" --output "$work_dir" "$dn" > "$out"
+    python3 "$python_prog"  --output "$work_dir"  --list_dn "$dn" > "$out"
+    [ -f /tmp/debug ] || rm "$out"
+}
 
 # install_list() {
 #     out="/tmp/job-${list_name}-install-${1}.out"
@@ -82,7 +88,8 @@ mkdir $work_dir
 
 echo "Rebuilding list: rebuild_list" $1 $work_dir
 # rebuild_list "$1" /var/tmp/dist_lists
-#rebuild_list "$1" "$work_dir"
+# rebuild_list "$1" "$work_dir"
+rebuild_list
 
 echo "Cleaning out staging directory:" $staging_dir
 # rm -v -f \

@@ -10,7 +10,7 @@ class AppLogger(object):
         logger = logging.getLogger(__name__)
         logger.setLevel(logging.INFO)
         #PROJECT_HOME = os.getenv("PYTHONPATH") # set in myvenv/bin/activate
-        log_file_name = os.path.join(os.getenv("PYTHONPATH"), "app.log") # set in .venv/bin/activate
+        log_file_name = os.path.join(os.getenv("PYTHONPATH"), "major_update.log") # set in .venv/bin/activate
         
         file_handler = logging.FileHandler(log_file_name)
         formatter = logging.Formatter("%(asctime)s %(levelname)s %(filename)s %(funcName)s %(lineno)s: %(message)s")
