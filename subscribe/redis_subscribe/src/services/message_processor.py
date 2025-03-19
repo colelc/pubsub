@@ -1,6 +1,9 @@
+import json
 import subprocess
 import os
 import time
+import urllib.parse
+import urllib.request
 from src.config.config import Config
 from src.logging.app_logger import AppLogger
 
@@ -11,6 +14,7 @@ class MessageProcessor(object):
         self.logger = AppLogger.get_logger()
         self.timestamp_marker = timestamp_marker
         self.dn = dn
+        self.url_encoded_dn = self.url_encode_string(dn)
         self.list_work_directory = Config.get_property("list.work.directory")
         self.list_staging_directory = Config.get_property("list.staging.directory")
    
@@ -38,6 +42,11 @@ class MessageProcessor(object):
         python_prog_path = os.path.join(python_directory, python_prog_name)
 
         with open(job_file_path, "w") as job_file:
+            url = "https://go.fuqua.duke.edu/fuqua_link/rest/ldap/groupdn/" + self.url_encoded_dn 
+            dct = self.get_mailing_list_name(url)
+            self.logger.info(str(dct))
+
+
             self.logger.info("Calling " + str(bash_script_name) + " with dn=" + str(self.dn))
             result = subprocess.run(
                 ["/bin/sh", "-e", "-x", bash_script_path, str(self.dn), self.list_work_directory, self.list_staging_directory, python_prog_path], capture_output=True, 
@@ -59,4 +68,23 @@ class MessageProcessor(object):
             self.logger.error("Return code " + str(result.returncode))
 
         return (result.returncode, job_file_path)
+
+    def url_encode_string(self, input_string):
+        encoded_string = urllib.parse.quote(input_string)
+        return encoded_string
+    
+    def get_mailing_list_name(self, url):
+        try:
+            headers = {"Accept": "application/json"}
+            req = urllib.request.Request(url, headers=headers, method="GET")
+
+            with urllib.request.urlopen(req) as response:
+                json_string = response.read().decode("UTF-8")
+                return json.loads(json_string) #dict  
+            
+        except Exception as err:
+            self.logger.error("EXCEPTION")
+            self.logger.error(str(type(err)))
+            self.logger.error(str(err))
+            self.logger.error(str(err.__dict__))
 
