@@ -4,13 +4,11 @@ from src.config.config import Config
 from src.logging.app_logger import AppLogger
 
 
-class RedisStream(object):
+class RedisClient(object):
 
     def __init__(self):
         self.logger = AppLogger.get_logger()
         self.redis_client = self.set_up_client()
-        self.channel = Config.get_property("redis.channel")
-        self.set_up_consumer_group()
    
     def set_up_client(self) -> type:
         # specifying all 6 redis nodes in the cluster, but could specify any single node: that node would self-discover the rest of the cluster
@@ -37,19 +35,14 @@ class RedisStream(object):
             sys.exit(99)
 
         return redis_client
-    
-    def set_up_consumer_group(self):
-        stream_name = Config.get_property("redis.stream")
-        consumer_group = Config.get_property("consumer.group")
-        self.logger.info("Setting up stream: " + stream_name + " for consumer group: " + consumer_group)
-
-        try:
-            self.get_redis_client().xgroup_create(stream_name, consumer_group, id="0", mkstream=True)
-        except Exception as e:
-            self.logger.error(str(e))
-            #sys.exit(99)
 
     def get_redis_client(self):
         return self.redis_client
+    
+    def close_redis_client(self):
+        try:
+            self.redis_client.close()
+        except Exception as e:
+            self.logger.error(str(e))
 
     
