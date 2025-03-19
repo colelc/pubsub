@@ -7,6 +7,7 @@ import time
 from redis.cluster import RedisCluster, ClusterNode
 from src.config.config import Config
 from src.logging.app_logger import AppLogger
+from src.services.message_processor import MessageProcessor
 
 
 class RedisSubscribe(object):
@@ -17,11 +18,6 @@ class RedisSubscribe(object):
 
         self.list_work_directory = Config.get_property("list.work.directory")
         self.list_staging_directory = Config.get_property("list.staging.directory")
-
-        #self.channel = Config.get_property("redis.channel")
-        #self.pubsub = self.redis_subscribe()
-        #self.pubsub = self.redis_client.pubsub()
-        #self.redis_subscribe()
    
     def set_up_client(self) -> type:
         # specifying all 6 redis nodes in the cluster, but could specify any single node: that node would self-discover the rest of the cluster
@@ -51,31 +47,6 @@ class RedisSubscribe(object):
 
     def get_redis_client(self):
         return self.redis_client
-    
-    
-    # def redis_subscribe(self) -> type:
-    #     try:
-    #         channel = Config.get_property("redis.channel")
-    #         self.logger.info("Subscribing to redis cluster channel: " + channel)
-    #         self.pubsub.subscribe(channel)
-    #     except Exception as e:
-    #         self.logger.error(str(e))
-
-
-    # def redis_listen(self):
-    #     self.logger.info("Listening for messages from the redis channel....")
-    #     while True:
-    #         try:
-    #             message = self.pubsub.get_message(timeout=1)
-    #             if message is not None and message["type"] == "message":
-    #                 self.process_message(message)
-    #         except redis.exceptions.ConnectionError:
-    #             self.logger.error("Redis connection lost.  Reconnecting ...")
-    #         except KeyboardInterrupt:
-    #             self.logger.info("Exiting by user request")
-    #             break
-    #         except Exception as e:
-    #             self.logger.error(str(e))
 
     def redis_listen_stream(self):
         self.logger.info("Listening for messages from the redis stream ....")
@@ -101,7 +72,8 @@ class RedisSubscribe(object):
                             dn = dct[b'dn'].decode("utf-8")
                             self.logger.info(timestamp_marker + " -> " + str(dn))
 
-                            return_code, job_file_path = self.process_message(timestamp_marker, dn)
+                            # return_code, job_file_path = self.process_message(timestamp_marker, dn)
+                            return_code, job_file_path = MessageProcessor(timestamp_marker, dn).process_message()
 
                             if return_code == 0:
                                 # acknowledge ensures the message will not get delivered again
