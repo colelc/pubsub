@@ -22,6 +22,7 @@ class Config(object):
 
         #for key, value in os.environ.items():
         #    logger.info(key + " -> " + str(value))
+        logger.info(str(os.path.join(os.getenv("PYTHONPATH"), "resources", ".env")))
         full_config = dotenv_values(os.path.join(os.getenv("PYTHONPATH"), "resources", ".env"))
         Config.ENV = full_config.get("ENV")
 

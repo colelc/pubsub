@@ -7,7 +7,7 @@ class Subscribe(object):
     def go(cls):
         log = AppLogger.get_logger()
         log.info("")
-        log.info("This is code to subscribe a redis stream")
+        log.info("This is code to subscribe to a redis stream")
         log.info("")
 
         #RedisSubscribe().redis_listen()
