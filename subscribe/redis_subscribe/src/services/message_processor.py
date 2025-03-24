@@ -66,6 +66,45 @@ class MessageProcessor(object):
             # rebuild the list
             self.logger.info("Re-building the " + list_name + " email list")
             ListRebuilder(list_name, self.list_work_directory, self.dn)
+
+            # clean out the staging directory for this email list
+            self.logger.info("Cleaning out the staging directory: " + self.list_staging_directory)
+
+            fn = self.build_staging_file_name(list_name)
+            #self.logger.info("Deleting: " + fn)
+            # return_code = self.linux_command(["rm", "-v", "-f", fn], job_file)
+            # if return_code != 0:
+            #     return (return_code, job_file_path)
+            
+            aliases = self.build_staging_file_name(list_name, ".aliases")
+            #self.logger.info("Deleting: " + aliases)
+            # return_code = self.linux_command(["rm", "-v", "-f", aliases], job_file)
+            # if return_code != 0:
+            #    return (return_code, job_file_path)
+
+            authusers = self.build_staging_file_name(list_name, ".authusers")
+            #self.logger.info("Deleting: " + authusers)
+            # return_code = self.linux_command(["rm", "-v", "-f", authusers], job_file)
+            # if return_code != 0:
+            #    return (return_code, job_file_path)
+
+            config = self.build_staging_file_name(list_name, ".config")
+            #self.logger.info("Deleting: " + config)
+            # return_code = self.linux_command(["rm", "-v", "-f", config], job_file)
+            # if return_code != 0:
+            #    return (return_code, job_file_path)
+
+            passwd = self.build_staging_file_name(list_name, ".passwd")
+            #self.logger.info("Deleting: " + passwd)
+            # return_code = self.linux_command(["rm", "-v", "-f", passwd], job_file)
+            # if return_code != 0:
+            #    return (return_code, job_file_path)
+
+            return_code = self.linux_command(["rm", "-v", "-f", fn, aliases, authusers, config, passwd], job_file)
+            if return_code != 0:
+                return (return_code, job_file_path)
+            
+
             ########################################################################################
         #     self.logger.info("Calling " + str(bash_script_name) + " with dn=" + str(self.dn))
         #     result = subprocess.run(
@@ -140,6 +179,8 @@ class MessageProcessor(object):
         return list_name
 
     def linux_command(self, cmd, job_file) -> int:
+        #self.logger.info(str(cmd))
+        self.logger.info(" ".join(cmd))
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
         #self.logger.info(str(result.stdout))
         job_file.write(result.stdout)
@@ -149,6 +190,15 @@ class MessageProcessor(object):
             self.logger.error("non-zero return code for command: " + str(cmd))
 
         return result.returncode
+    
+    def build_staging_file_name(self, list_name, ext=None) -> str:
+        if ext is None:
+            fn = os.path.join(self.list_staging_directory, list_name)
+            return fn
+        
+        fn = os.path.join(self.list_staging_directory, list_name) + ext
+        return fn
+        
 
 
 
