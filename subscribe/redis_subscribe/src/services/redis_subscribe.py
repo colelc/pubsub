@@ -70,7 +70,7 @@ class RedisSubscribe(object):
                             timestamp_marker = data[0].decode("utf-8")
                             dct = data[1]
                             dn = dct[b'dn'].decode("utf-8")
-                            self.logger.info(timestamp_marker + " -> " + str(dn))
+                            #self.logger.info(timestamp_marker + " -> " + str(dn))
 
                             # return_code, job_file_path = self.process_message(timestamp_marker, dn)
                             return_code, job_file_path = MessageProcessor(timestamp_marker, dn).process_message()

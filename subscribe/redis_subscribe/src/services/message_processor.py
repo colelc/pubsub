@@ -6,7 +6,7 @@ import urllib.parse
 import urllib.request
 from src.config.config import Config
 from src.logging.app_logger import AppLogger
-from src.services.list_publisher import ListPublisher
+from src.services.list_rebuilder import ListRebuilder
 
 class MessageProcessor(object):
 
@@ -17,6 +17,8 @@ class MessageProcessor(object):
         self.url_encoded_dn = self.url_encode_string(dn)
         self.list_work_directory = Config.get_property("list.work.directory")
         self.list_staging_directory = Config.get_property("list.staging.directory")
+
+        self.logger.info("Processing message: " + str(dn))
    
     def process_message(self):
         time.sleep(5)
@@ -45,7 +47,9 @@ class MessageProcessor(object):
             # acquire the list name
             url = "https://go.fuqua.duke.edu/fuqua_link/rest/ldap/groupdn/" + self.url_encoded_dn 
             dct = self.rest_api_get(url)
-            list_name = self.extract_list_name(dct)
+
+            list_name = self.extract_list_name(dct, url)
+            self.logger.info("Extracted list name is: " + list_name)
             if list_name is None:
                 return (1, job_file_path)
 
@@ -60,7 +64,8 @@ class MessageProcessor(object):
                 return (return_code, job_file_path)
 
             # rebuild the list
-            ListPublisher(list_name, self.list_work_directory, self.dn)
+            self.logger.info("Re-building the " + list_name + " email list")
+            ListRebuilder(list_name, self.list_work_directory, self.dn)
             ########################################################################################
         #     self.logger.info("Calling " + str(bash_script_name) + " with dn=" + str(self.dn))
         #     result = subprocess.run(
@@ -103,12 +108,12 @@ class MessageProcessor(object):
             self.logger.error(str(err))
             self.logger.error(str(err.__dict__))
 
-    def extract_list_name(self, dct) -> str:
+    def extract_list_name(self, dct, url) -> str:
         if dct is None:
             return None
 
-        for k,v in dct.items():
-            self.logger.info(k + " -> " + str(v))
+        #for k,v in dct.items():
+        #    self.logger.info(k + " -> " + str(v))
 
         success = dct["success"]
         if success is None or success == False:
@@ -119,16 +124,19 @@ class MessageProcessor(object):
         if group is None:
             self.logger.error("URL: " + url + " -> success: True, but no group, returning")
             return None
+        
+        for k,v in group.items():
+            self.logger.info("group: " + k + " -> " + str(v))
 
         mail = group["mail"]
-        self.logger.info("mail: " + mail)
+        #self.logger.info("mail: " + mail)
 
         if mail is None:
             self.logger.error("URL: " + url + " -> success: True, but no value for group email, returning")
             return None
 
         list_name = mail.split("@", 1)[0].lower()
-        self.logger.info("list name: " + list_name)
+        #self.logger.info("list name: " + list_name)
         return list_name
 
     def linux_command(self, cmd, job_file) -> int:

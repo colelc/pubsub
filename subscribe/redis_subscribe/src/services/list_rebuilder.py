@@ -9,7 +9,7 @@ import urllib.parse
 #from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from src.logging.app_logger import AppLogger
 
-class ListPublisher(object):
+class ListRebuilder(object):
 
     def __init__(self, list_name, list_work_directory, dn):
         self.logger = AppLogger.get_logger()
@@ -89,8 +89,8 @@ class ListPublisher(object):
             'group',
         )
 
-        for k,v in list_info.items():
-            self.logger.info("list_info: " + k + " -> " + str(v))
+        #for k,v in list_info.items():
+        #    self.logger.info("list_info: " + k + " -> " + str(v))
 
         if list_info['publish'] == 'true':
             self.write_recipients(list_info)
@@ -101,7 +101,7 @@ class ListPublisher(object):
 
     def fetch_joe_api_object(self, url, key):
         self.logger.info("URL: " + str(url))
-        self.logger.info("key: " + str(key))
+        #self.logger.info("key: " + str(key))
         res = requests.get(url, timeout=30)
         res.raise_for_status()
         payload = res.json()
