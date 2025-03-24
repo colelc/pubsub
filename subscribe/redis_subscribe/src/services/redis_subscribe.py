@@ -88,14 +88,17 @@ class RedisSubscribe(object):
                             
             except redis.exceptions.ConnectionError as econn:
                 self.logger.error(str(econn))
-                self.logger.error("Redis connection lost.  Reconnecting ...")
+                self.logger.error("Redis connection lost.")
+                time.sleep(60)
             except redis.exceptions.BusyLoadingError as eload:
                 self.logger.error(str(eload))
+                time.sleep(60)
             except KeyboardInterrupt:
                 self.logger.info("Exiting by user request")
                 break
             except Exception as e:
                 self.logger.error(str(e))
+                time.sleep(60)
 
 
     def process_message(self, timestamp_marker, dn) -> int:
