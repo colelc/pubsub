@@ -71,39 +71,54 @@ class MessageProcessor(object):
             self.logger.info("Cleaning out the staging directory: " + self.list_staging_directory)
 
             fn = self.build_staging_file_name(list_name)
-            #self.logger.info("Deleting: " + fn)
-            # return_code = self.linux_command(["rm", "-v", "-f", fn], job_file)
-            # if return_code != 0:
-            #     return (return_code, job_file_path)
-            
             aliases = self.build_staging_file_name(list_name, ".aliases")
-            #self.logger.info("Deleting: " + aliases)
-            # return_code = self.linux_command(["rm", "-v", "-f", aliases], job_file)
-            # if return_code != 0:
-            #    return (return_code, job_file_path)
-
             authusers = self.build_staging_file_name(list_name, ".authusers")
-            #self.logger.info("Deleting: " + authusers)
-            # return_code = self.linux_command(["rm", "-v", "-f", authusers], job_file)
-            # if return_code != 0:
-            #    return (return_code, job_file_path)
-
             config = self.build_staging_file_name(list_name, ".config")
-            #self.logger.info("Deleting: " + config)
-            # return_code = self.linux_command(["rm", "-v", "-f", config], job_file)
-            # if return_code != 0:
-            #    return (return_code, job_file_path)
-
             passwd = self.build_staging_file_name(list_name, ".passwd")
-            #self.logger.info("Deleting: " + passwd)
-            # return_code = self.linux_command(["rm", "-v", "-f", passwd], job_file)
-            # if return_code != 0:
-            #    return (return_code, job_file_path)
 
             return_code = self.linux_command(["rm", "-v", "-f", fn, aliases, authusers, config, passwd], job_file)
             if return_code != 0:
                 return (return_code, job_file_path)
             
+            # copy the work files into the staging directory
+            #  (create the staging directory if it does not exist)
+            return_code = self.linux_command(["mkdir", "-p", self.list_staging_directory], job_file)
+            if return_code != 0:
+                return (return_code, job_file_path)
+            
+            self.logger.info("Copying work files into the staging directory")
+            # return_code = self.linux_command(
+            #                                 [
+            #                                 "find", self.list_work_directory, "-mindepth", "1", "-print0", 
+            #                                 "|", "xargs", "-0", "-r", "-I{}", "mv", "-v", "{}", self.list_staging_directory
+            #                                 ], 
+            #                                 job_file
+            #                                 )
+            process1 = subprocess.Popen(
+                                        [ "find", self.list_work_directory, "-mindepth", "1", "-print0"], 
+                                        stdout=subprocess.PIPE
+                                        )
+            process2 = subprocess.Popen(
+                                        ["xargs", "-0", "-r", "-I{}", "mv", "-v", "{}", self.list_staging_directory],
+                                        stdin=process1.stdout, 
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE
+                                        )
+            
+            process1.stdout.close()
+            #output = process2.communicate()[0]
+            output, error = process2.communicate()
+            if process2.returncode != 0:
+                self.logger.error(str(error.decode()))
+                return (process2.returncode, job_file_path)
+            
+            # self.logger.info(str(type(output)))
+            # self.logger.info(str(output))
+            self.logger.info(str(output.decode()))
+            # if return_code != 0:
+            #     return (return_code, job_file_path)
+            
+
 
             ########################################################################################
         #     self.logger.info("Calling " + str(bash_script_name) + " with dn=" + str(self.dn))
