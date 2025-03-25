@@ -7,6 +7,7 @@ import urllib.request
 from src.config.config import Config
 from src.logging.app_logger import AppLogger
 from src.services.list_rebuilder import ListRebuilder
+from src.services.paramiko_client import ParamikoClient
 
 class MessageProcessor(object):
 
@@ -17,8 +18,8 @@ class MessageProcessor(object):
         self.url_encoded_dn = self.url_encode_string(dn)
         self.list_work_directory = Config.get_property("list.work.directory")
         self.list_staging_directory = Config.get_property("list.staging.directory")
-
-
+        self.smtp_servers = {item.strip() for item in set(filter(None, Config.get_property("smtp.hosts").split(",")))}
+        self.smtp_script_location = Config.get_property("smtp.script.location")
 
         self.logger.info("Processing message: " + str(dn))
    
@@ -110,31 +111,27 @@ class MessageProcessor(object):
             
             self.logger.info(str(output.decode()))
 
-            # read in the names of the smtp servers
+            # push out files to smtp servers
+            self.logger.info("Pushing out files to smtp servers")
+            for host in self.smtp_servers:
+                self.logger.info("SMTP server: " + host)
+                ssh_client = ParamikoClient(host)  #.get_paramiko_client()
 
-            
+                stdin, stdout, stderr = ssh_client.get_paramiko_client().exec_command("bash " + self.smtp_script_location)
+                err = stderr.read().decode("utf-8")
+                if err is not None and len(err) != 0:
+                    ssh_client.close_paramiko_client()
+                    self.logger.error(str(err))
+                    return (3, job_file_path)
 
+                ssh_client.close_paramiko_client()
 
-            ########################################################################################
-        #     self.logger.info("Calling " + str(bash_script_name) + " with dn=" + str(self.dn))
-        #     result = subprocess.run(
-        #         ["/bin/sh", "-e", "-x", bash_script_path, str(self.dn), self.list_work_directory, self.list_staging_directory, python_prog_path], capture_output=True, 
-        #         text=True, 
-        #         timeout=60
-        #     )
-        #     self.logger.info(str(result.stdout))
-        #     job_file.write(result.stdout)
-        #     job_file.write(result.stderr)
-
-        # if result.returncode == 0:
             try:
                 #self.logger.info("SUCCESS: do not forget to remove the marker file")
                 os.remove(job_file_path)
                 self.logger.info("SUCCESS: removing job marker file: " + job_file_path)
             except Exception as e:
                 self.logger.error(str(e))
-        # else: # error
-        #     self.logger.error("Return code " + str(result.returncode))
 
         return (0, job_file_path)
 
