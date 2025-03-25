@@ -18,6 +18,8 @@ class MessageProcessor(object):
         self.list_work_directory = Config.get_property("list.work.directory")
         self.list_staging_directory = Config.get_property("list.staging.directory")
 
+
+
         self.logger.info("Processing message: " + str(dn))
    
     def process_message(self):
@@ -35,13 +37,13 @@ class MessageProcessor(object):
         self.logger.info("Preparing job marker file: " + job_file_path)
 
         #bash_script_dir = os.getenv("PYTHONPATH")
-        bash_script_dir = Config.get_property("bash.script.directory")
-        bash_script_name = Config.get_property("bash.script.name")
-        bash_script_path = os.path.join(bash_script_dir, bash_script_name)
+        # bash_script_dir = Config.get_property("bash.script.directory")
+        # bash_script_name = Config.get_property("bash.script.name")
+        # bash_script_path = os.path.join(bash_script_dir, bash_script_name)
 
-        python_directory = Config.get_property("python.directory")
-        python_prog_name = Config.get_property("python.prog.name")
-        python_prog_path = os.path.join(python_directory, python_prog_name)
+        # python_directory = Config.get_property("python.directory")
+        # python_prog_name = Config.get_property("python.prog.name")
+        # python_prog_path = os.path.join(python_directory, python_prog_name)
 
         with open(job_file_path, "w") as job_file:
             # acquire the list name
@@ -86,14 +88,8 @@ class MessageProcessor(object):
             if return_code != 0:
                 return (return_code, job_file_path)
             
-            self.logger.info("Copying work files into the staging directory")
-            # return_code = self.linux_command(
-            #                                 [
-            #                                 "find", self.list_work_directory, "-mindepth", "1", "-print0", 
-            #                                 "|", "xargs", "-0", "-r", "-I{}", "mv", "-v", "{}", self.list_staging_directory
-            #                                 ], 
-            #                                 job_file
-            #                                 )
+            self.logger.info("Moving work files into the staging directory")
+
             process1 = subprocess.Popen(
                                         [ "find", self.list_work_directory, "-mindepth", "1", "-print0"], 
                                         stdout=subprocess.PIPE
@@ -106,17 +102,16 @@ class MessageProcessor(object):
                                         )
             
             process1.stdout.close()
-            #output = process2.communicate()[0]
+
             output, error = process2.communicate()
             if process2.returncode != 0:
                 self.logger.error(str(error.decode()))
                 return (process2.returncode, job_file_path)
             
-            # self.logger.info(str(type(output)))
-            # self.logger.info(str(output))
             self.logger.info(str(output.decode()))
-            # if return_code != 0:
-            #     return (return_code, job_file_path)
+
+            # read in the names of the smtp servers
+
             
 
 
@@ -132,12 +127,12 @@ class MessageProcessor(object):
         #     job_file.write(result.stderr)
 
         # if result.returncode == 0:
-        #     try:
-        #         #self.logger.info("SUCCESS: do not forget to remove the marker file")
-        #         os.remove(job_file_path)
-        #         self.logger.info("SUCCESS: removing job marker file: " + job_file_path)
-        #     except Exception as e:
-        #         self.logger.error(str(e))
+            try:
+                #self.logger.info("SUCCESS: do not forget to remove the marker file")
+                os.remove(job_file_path)
+                self.logger.info("SUCCESS: removing job marker file: " + job_file_path)
+            except Exception as e:
+                self.logger.error(str(e))
         # else: # error
         #     self.logger.error("Return code " + str(result.returncode))
 
